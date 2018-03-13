@@ -5,14 +5,15 @@ var nodes = [];
 var force, node, data, maxVal;
 var brake = 0.2;
 var radius = d3.scale.sqrt().range([10, 20]);
+var soundGroupButton = new Audio("assets/sound_for_group_button.wav"); //variable for the new sound that will be used when the 'grouping buttons' are pressed
 
-var partyCentres = { 
-    con: { x: w / 3, y: h / 3.3}, 
-    lab: {x: w / 3, y: h / 2.3}, 
+var partyCentres = {
+    con: { x: w / 3, y: h / 3.3},
+    lab: {x: w / 3, y: h / 2.3},
     lib: {x: w / 3	, y: h / 1.8}
   };
 
-var entityCentres = { 
+var entityCentres = {
     company: {x: w / 3.65, y: h / 2.3},
 		union: {x: w / 3.65, y: h / 1.8},
 		other: {x: w / 1.15, y: h / 1.9},
@@ -21,9 +22,9 @@ var entityCentres = {
 		individual: {x: w / 3.65, y: h / 3.3},
 	};
 
-var fill = d3.scale.ordinal().range(["#F02233", "#087FBD", "#FDBB30"]);
+var fill = d3.scale.ordinal().range(["#FFD700", "#CC3300", "#003333"]);  //Colour of each circle
 
-var svgCentre = { 
+var svgCentre = {
     x: w / 3.6, y: h / 2
   };
 
@@ -42,12 +43,15 @@ var tooltip = d3.select("#chart")
 var comma = d3.format(",.0f");
 
 function transition(name) {
+
+  soundGroupButton.play(); //the sound plays every time that the data transitions to another 'state', in other words when we group the data by a different feature
 	if (name === "all-donations") {
 		$("#initial-content").fadeIn(250);
 		$("#value-scale").fadeIn(1000);
 		$("#view-donor-type").fadeOut(250);
 		$("#view-source-type").fadeOut(250);
 		$("#view-party-type").fadeOut(250);
+		$("#view-amount-type").fadeOut(250); //added the amount type for the view of the new group 'split by the amount of the donation'
 		return total();
 		//location.reload();
 	}
@@ -57,6 +61,7 @@ function transition(name) {
 		$("#view-donor-type").fadeOut(250);
 		$("#view-source-type").fadeOut(250);
 		$("#view-party-type").fadeIn(1000);
+		$("#view-amount-type").fadeOut(250);
 		return partyGroup();
 	}
 	if (name === "group-by-donor-type") {
@@ -65,16 +70,28 @@ function transition(name) {
 		$("#view-party-type").fadeOut(250);
 		$("#view-source-type").fadeOut(250);
 		$("#view-donor-type").fadeIn(1000);
+		$("#view-amount-type").fadeOut(250);
 		return donorType();
 	}
-	if (name === "group-by-money-source")
+	if (name === "group-by-money-source"){
 		$("#initial-content").fadeOut(250);
 		$("#value-scale").fadeOut(250);
 		$("#view-donor-type").fadeOut(250);
 		$("#view-party-type").fadeOut(250);
 		$("#view-source-type").fadeIn(1000);
+		$("#view-amount-type").fadeOut(250);
 		return fundsType();
 	}
+  if (name === "group-by-the-amount-of-the-donation"){ //this was created for the new group-by-the-amount-of-the-donation
+		$("#initial-content").fadeOut(250);
+		$("#value-scale").fadeOut(250);
+		$("#view-donor-type").fadeOut(250);
+		$("#view-party-type").fadeOut(250);
+		$("#view-source-type").fadeOut(250);
+		$("#view-amount-type").fadeIn(1000);
+		return amountType();
+	}
+}
 
 function start() {
 
@@ -92,7 +109,9 @@ function start() {
 		.attr("r", 0)
 		.style("fill", function(d) { return fill(d.party); })
 		.on("mouseover", mouseover)
-		.on("mouseout", mouseout);
+		.on("mouseout", mouseout)
+    .on("click", function(d) { window.open('http://google.com/search?q='+d.donor); }); //Opens a new window in google with the results of each donor's name
+
 		// Alternative title based 'tooltips'
 		// node.append("title")
 		//	.text(function(d) { return d.donor; });
@@ -142,6 +161,14 @@ function fundsType() {
 		.start();
 }
 
+function amountType() { // function that will be used for the view of the group-by-the-amount-of-the-donation
+	force.gravity(0)
+		.friction(0.8)
+		.charge(function(d) { return -Math.pow(d.radius, 2.0) / 3; })
+		.on("tick", spectrum_of_donations)
+		.start();
+}
+
 function parties(e) {
 	node.each(moveToParties(e.alpha));
 
@@ -158,6 +185,14 @@ function entities(e) {
 
 function types(e) {
 	node.each(moveToFunds(e.alpha));
+
+
+		node.attr("cx", function(d) { return d.x; })
+			.attr("cy", function(d) {return d.y; });
+}
+
+function spectrum_of_donations(e) {  // function that will be used for the view of the group-by-the-amount-of-the-donation
+	node.each(moveToCategories(e.alpha));
 
 
 		node.attr("cx", function(d) { return d.x; })
@@ -241,6 +276,41 @@ function moveToFunds(alpha) {
 	};
 }
 
+function moveToCategories(alpha) {    //function for the split by the magnitude of the donation
+	return function(d) {
+
+
+        if (d.value <= 50000){
+            centreX = svgCentre.x-50;
+            centreY = svgCentre.y+100;
+        }
+        else if (d.value > 50000 && d.value < 200000) {
+            centreX = svgCentre.x - 50;
+            centreY = svgCentre.y;
+        }
+        else if (d.value > 200001 && d.value < 500001) {
+            centreX = svgCentre.x - 50;
+            centreY = svgCentre.y-100;
+        }
+        else if (d.value > 500001 && d.value < 2000001) {
+            centreX = svgCentre.x + 500;
+            centreY = svgCentre.y + 100;
+        }
+        else if (d.value > 2000001 && d.value < 10000001 ) {
+            centreX = svgCentre.x + 500;
+            centreY = svgCentre.y;
+        }
+        else if (d.value > 10000000 ) {
+            centreX = svgCentre.x + 500;
+            centreY = svgCentre.y - 100;
+        }
+
+		d.x += (centreX - d.x) * (brake + 0.02) * alpha * 1.1;
+		d.y += (centreY - d.y) * (brake + 0.02) * alpha * 1.1;
+	};
+}
+
+
 // Collision detection function by m bostock
 function collide(alpha) {
   var quadtree = d3.geom.quadtree(nodes);
@@ -294,7 +364,7 @@ function display(data) {
 				x: Math.random() * w,
 				y: -y
       };
-			
+
       nodes.push(node)
 	});
 
@@ -315,42 +385,44 @@ function mouseover(d, i) {
 	var party = d.partyLabel;
 	var entity = d.entityLabel;
 	var offset = $("svg").offset();
-	
 
+  responsiveVoice.speak("The Donor is " + donor + " " + "and the total amount of the donation is " + amount + "£"); //The name of the donor and the amount of the donation is read aloud every time that the cursor is over a circle
 
 	// image url that want to check
 	var imageFile = "https://raw.githubusercontent.com/ioniodi/D3js-uk-political-donations/master/photos/" + donor + ".ico";
 
-	
-	
+
+
 	// *******************************************
-	
-	
-	
 
-	
 
-	
-	var infoBox = "<p> Source: <b>" + donor + "</b> " +  "<span><img src='" + imageFile + "' height='42' width='42' onError='this.src=\"https://github.com/favicon.ico\";'></span></p>" 	
-	
+
+
+
+
+
+	var infoBox = "<p> Source: <b>" + donor + "</b> " +  "<span><img src='" + imageFile + "' height='42' width='42' onError='this.src=\"https://github.com/favicon.ico\";'></span></p>"
+
 	 							+ "<p> Recipient: <b>" + party + "</b></p>"
 								+ "<p> Type of donor: <b>" + entity + "</b></p>"
 								+ "<p> Total value: <b>&#163;" + comma(amount) + "</b></p>";
-	
-	
+
+
 	mosie.classed("active", true);
 	d3.select(".tooltip")
   	.style("left", (parseInt(d3.select(this).attr("cx") - 80) + offset.left) + "px")
     .style("top", (parseInt(d3.select(this).attr("cy") - (d.radius+150)) + offset.top) + "px")
 		.html(infoBox)
 			.style("display","block");
-	
-	
+
+
 	}
 
 function mouseout() {
 	// no more tooltips
 		var mosie = d3.select(this);
+
+    responsiveVoice.cancel(); //stops the reading when the mouse cursor is not over a circle
 
 		mosie.classed("active", false);
 
@@ -366,5 +438,3 @@ $(document).ready(function() {
     return d3.csv("data/7500up.csv", display);
 
 });
-
-
