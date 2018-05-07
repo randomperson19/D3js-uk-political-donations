@@ -416,7 +416,24 @@ function mouseover(d, i) {
 			.style("display","block");
 
 
-	}
+
+      var donorImage = document.createElement("img");  //creates an <img> element
+
+    	donorImage.src = imageFile;  //sets the value of the src attribute of an image
+
+    	donorImage.width = 28;  //sets the value of the width attribute of an image
+
+    	donorImage.height = 28; //sets the value of the height attribute of an image
+
+      donorImage.setAttribute("onError",'this.src=\"https://github.com/favicon.ico\";'); // when an image does not exist in the source file location it replaces it with the given image
+
+    	document.getElementById("view-donors'-images").appendChild(donorImage); //adds a new child node, to the initial element, as the last child node
+
+
+     };
+
+
+
 
 function mouseout() {
 	// no more tooltips
