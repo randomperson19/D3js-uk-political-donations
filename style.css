@@ -29,6 +29,12 @@ li {
 #view-party-type, #view-donor-type, #view-source-type, #view-amount-type {
     display: none;
 }
+.view-donors'-images {
+	
+	position: absolute;
+    left: 1200px;
+    width: 300px;
+}
 
 /* zoom implementation */
 .zoom {
